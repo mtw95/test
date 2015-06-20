@@ -185,16 +185,25 @@ double Engine::getFPS(double dt, double curFPS, double numFrames)
 	return (1/((aveDT+dt)/(numFrames+1)));
 }
 
-int initLevel(vector<Object> &objects)
+int initLevel(vector<Object> &objects, int argc, char** args)
 {
-//	ifstream inFile("/home/mason/Desktop/test.txt");
-	ifstream inFile("levels/test.txt");
+	string level = "";
+	if (argc > 1)
+	{
+		level = "levels/";
+		level.append(args[1]);
+	}
+	else if (argc == 1)
+	{
+		level = "levels/test.txt";
+	}
+
+	ifstream inFile(level.c_str());
+
 	string temp;
 	int number = 0;
 	int space = 0, space2 = 0;
 	string data;
-	if(!inFile)
-		cout << "Error" << endl;
 
 	Object obj;
 
@@ -314,7 +323,7 @@ int main(int argc, char *argv[])
 	Player player(200, 100);
 
 	vector<Object> objects;
-	initLevel(objects);
+	initLevel(objects, argc, argv);
 
 	while (isRunning)
 	{
