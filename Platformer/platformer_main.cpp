@@ -187,7 +187,8 @@ double Engine::getFPS(double dt, double curFPS, double numFrames)
 
 int initLevel(vector<Object> &objects)
 {
-	ifstream inFile("/home/mason/Desktop/test.txt");
+//	ifstream inFile("/home/mason/Desktop/test.txt");
+	ifstream inFile("levels/test.txt");
 	string temp;
 	int number = 0;
 	int space = 0, space2 = 0;
