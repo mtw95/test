@@ -18,8 +18,8 @@ public:
 class Object
 {
 public:
-	int red, green, blue, alpha, xPos, yPos, width, height, depth;
-	bool render;
+	int id, red, green, blue, alpha, xPos, yPos, width, height, depth;
+	bool visible;
 	string type;
 	void collision_react();
 	void collide_blue();
@@ -116,20 +116,23 @@ int Player::collide_x(vector<Object> obj, double dt)
 {
 	for (vector<Object>::iterator it = obj.begin(); it != obj.end(); it++)
 	{
-		if (((yPos + height) >= it->yPos) && (yPos <= (it->yPos + it->height)))
+		if (it->visible)
 		{
-			if ((xVel > 0) && ((xPos + width) >= it->xPos))
+			if (((yPos + height) >= it->yPos) && (yPos <= (it->yPos + it->height)))
 			{
-				if ((xPos + width - (dt*xVel)) <= (it->xPos))
+				if ((xVel > 0) && ((xPos + width) >= it->xPos))
 				{
-					return it->xPos;
+					if ((xPos + width - (dt*xVel)) <= (it->xPos))
+					{
+						return it->xPos;
+					}
 				}
-			}
-			else if ((xVel < 0) && ((xPos <= (it->xPos + it->width))))
-			{
-				if((xPos - (dt*xVel)) >= (it->xPos + it->width))
+				else if ((xVel < 0) && ((xPos <= (it->xPos + it->width))))
 				{
-					return it->xPos;
+					if((xPos - (dt*xVel)) >= (it->xPos + it->width))
+					{
+						return it->xPos;
+					}
 				}
 			}
 		}
@@ -141,7 +144,7 @@ int Player::collide_y(vector<Object> obj, double dt)
 {
 	for (vector<Object>::iterator it = obj.begin(); it != obj.end(); it++)
 	{
-		if (it->render)
+		if (it->visible)
 		{
 			if (((xPos + width) >= it->xPos) && (xPos <= (it->xPos + it->width)))
 			{
@@ -149,6 +152,7 @@ int Player::collide_y(vector<Object> obj, double dt)
 				{
 					if ((yPos + height - (dt*yVel)) <= (it->yPos))
 					{
+						it->collision_react();
 						return it->yPos;
 					}
 				}
@@ -156,6 +160,7 @@ int Player::collide_y(vector<Object> obj, double dt)
 				{
 					if ((yPos - (dt*yVel)) >= (it->yPos + it->height))
 					{
+						it->collision_react();
 						return it->yPos;
 					}
 				}
@@ -167,7 +172,12 @@ int Player::collide_y(vector<Object> obj, double dt)
 
 void Player::jump(vector<Object> obj)
 {
-	yVel = -750;
+	yVel = -850;
+}
+
+void Object::collision_react()
+{
+	visible = false;
 }
 
 double Engine::getTime(double &curTime)
@@ -206,12 +216,14 @@ int initLevel(vector<Object> &objects, int argc, char** args)
 	string data;
 
 	Object obj;
+	int id = 0;
 
 	while(getline(inFile, temp))
 	{
 		cout << temp << endl;
 
 		cout << "number: " << number << endl;
+
 
 		space = space2 = 0;
 		space2 = temp.find(" ", space);
@@ -262,7 +274,7 @@ int initLevel(vector<Object> &objects, int argc, char** args)
 		obj.depth = atoi(temp.substr(space).c_str());
 		cout << obj.depth << endl;
 
-		obj.render = true;
+		obj.visible = true;
 
 		objects.push_back(obj);
 		number++;
@@ -273,7 +285,7 @@ int initLevel(vector<Object> &objects, int argc, char** args)
 
 void drawObject(Object obj)
 {
-	if (obj.render)
+	if (obj.visible)
 	{
 		glColor4ub(obj.red, obj.green, obj.blue, obj.alpha);
 		glBegin(GL_QUADS);
@@ -320,7 +332,7 @@ int main(int argc, char *argv[])
 	bool left = false, right = false;
 	bool up = false;
 	int numFrames = 1;
-	Player player(200, 100);
+	Player player(75, 550);
 
 	vector<Object> objects;
 	initLevel(objects, argc, argv);
@@ -375,8 +387,6 @@ int main(int argc, char *argv[])
 		fps = 1/dt;
 
 //		fps = engine.getFPS(dt, fps, numFrames);
-
-		cout << fps << endl;
 
 		if (up && player.can_jump)
 		{
