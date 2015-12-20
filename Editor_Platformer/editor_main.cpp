@@ -41,7 +41,7 @@ void placeObject(vector<Object>& objects, int x, int y, int& num, string current
 	{
 		red = green = blue = 0;
 	}
-	else if (current == "coin")
+	else if (current == "trap_door")
 	{
 		red = green = 0;
 		blue = 255;
@@ -200,8 +200,8 @@ int main(int argc, char *argv[])
 					objects[0].red = objects[0].green = objects[0].blue = 0;
 					break;
 				case SDLK_2:
-					curObj = "coin";
-					objects[0].type = "coin";
+					curObj = "trap_door";
+					objects[0].type = "trap_door";
 					objects[0].red = objects[0].green = 0;
 					objects[0].blue = 255;
 					break;

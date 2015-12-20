@@ -11,8 +11,8 @@ using namespace std;
 class Engine
 {
 public:
-	double getTime(double &curTime);
-	double getFPS(double dt, double curFPS, double numFrames);
+	double setTimes(double &prevTime, double &curTime);
+	double getFPS(double prevTime, double curTime);
 };
 
 class Object
@@ -22,7 +22,6 @@ public:
 	bool visible;
 	string type;
 	void collision_react();
-	void collide_blue();
 };
 
 class Player
@@ -32,12 +31,14 @@ public:
 	int width, height;
 	double xVel, yVel;
 	bool can_jump;
+	bool alive = true;
 	void draw();
-	void move_x(vector<Object> obj, double dt, bool left, bool right);
-	void move_y(vector<Object> obj, double dt);
+	vector<Object> move_x(vector<Object> &obj, double dt, bool left, bool right);
+	vector<Object> move_y(vector<Object> &obj, double dt);
 
-	int collide_x(vector<Object> obj, double dt);
-	int collide_y(vector<Object> obj, double dt);
+	int collide_x(vector<Object> &obj, double dt);
+	int collide_y(vector<Object> &obj, double dt);
+	void collision_react(Object obj);
 
 	void gravity(double dt);
 	void jump(vector<Object> obj);
@@ -51,7 +52,7 @@ Player::Player(int X, int Y)
 
 void Player::gravity(double dt)
 {
-	yVel = yVel + (dt*6500);
+	yVel = yVel + (dt*500000);
 }
 
 void Player::draw()
@@ -65,13 +66,13 @@ void Player::draw()
 	glEnd();
 }
 
-void Player::move_x(vector<Object> obj, double dt, bool left, bool right)
+vector<Object> Player::move_x(vector<Object> &obj, double dt, bool left, bool right)
 {
 	xVel = 0;
 	if (left)
-		xVel -= 500;
+		xVel -= 4000;
 	if (right)
-		xVel += 500;
+		xVel += 4000;
 	xPos = xPos + (dt * xVel);
 
 	int collision = collide_x(obj, dt);
@@ -88,9 +89,10 @@ void Player::move_x(vector<Object> obj, double dt, bool left, bool right)
 		}
 		xVel = 0;
 	}
+	return obj;
 }
 
-void Player::move_y(vector<Object> obj, double dt)
+vector<Object> Player::move_y(vector<Object> &obj, double dt)
 {
 	yPos = yPos + (dt * yVel);
 
@@ -110,10 +112,12 @@ void Player::move_y(vector<Object> obj, double dt)
 		}
 		yVel = 0;
 	}
+	return obj;
 }
 
-int Player::collide_x(vector<Object> obj, double dt)
+int Player::collide_x(vector<Object> &obj, double dt)
 {
+	int index = 0;
 	for (vector<Object>::iterator it = obj.begin(); it != obj.end(); it++)
 	{
 		if (it->visible)
@@ -124,6 +128,8 @@ int Player::collide_x(vector<Object> obj, double dt)
 				{
 					if ((xPos + width - (dt*xVel)) <= (it->xPos))
 					{
+						collision_react(*it);
+						obj[index].collision_react();
 						return it->xPos;
 					}
 				}
@@ -131,17 +137,21 @@ int Player::collide_x(vector<Object> obj, double dt)
 				{
 					if((xPos - (dt*xVel)) >= (it->xPos + it->width))
 					{
+						collision_react(*it);
+						obj[index].collision_react();
 						return it->xPos;
 					}
 				}
 			}
 		}
+		index++;
 	}
 	return -1;
 }
 
-int Player::collide_y(vector<Object> obj, double dt)
+int Player::collide_y(vector<Object> &obj, double dt)
 {
+	int index = 0;
 	for (vector<Object>::iterator it = obj.begin(); it != obj.end(); it++)
 	{
 		if (it->visible)
@@ -152,7 +162,8 @@ int Player::collide_y(vector<Object> obj, double dt)
 				{
 					if ((yPos + height - (dt*yVel)) <= (it->yPos))
 					{
-						it->collision_react();
+						collision_react(*it);
+						obj[index].collision_react();
 						return it->yPos;
 					}
 				}
@@ -160,39 +171,63 @@ int Player::collide_y(vector<Object> obj, double dt)
 				{
 					if ((yPos - (dt*yVel)) >= (it->yPos + it->height))
 					{
-						it->collision_react();
+						collision_react(*it);
+						obj[index].collision_react();
 						return it->yPos;
 					}
 				}
 			}
 		}
+		index++;
 	}
 	return -1;
 }
 
 void Player::jump(vector<Object> obj)
 {
-	yVel = -850;
+	yVel = -7500;
+}
+
+void Player::collision_react(Object obj)
+{
+	if(obj.type == "trap_door")
+		return;
+	else if(obj.type == "block")
+		return;
+	else if(obj.type == "fire")
+	{
+		alive = false;
+		return;
+	}
 }
 
 void Object::collision_react()
 {
-	visible = false;
+	if(type == "trap_door")
+	{
+		visible = false;
+		return;
+	}
+	else if(type == "block")
+	{
+		return;
+	}
+	else if(type == "fire")
+	{
+		return;
+	}
 }
 
-double Engine::getTime(double &curTime)
+double Engine::setTimes(double &prevTime, double &curTime)
 {
-	double newTime = clock();
-	double dt = newTime - curTime;
-	curTime = newTime;
-	return (dt/CLOCKS_PER_SEC);
+	prevTime = curTime;
+	curTime = (((double)clock())/CLOCKS_PER_SEC);
+	return (curTime-prevTime);
 }
 
-double Engine::getFPS(double dt, double curFPS, double numFrames)
+double Engine::getFPS(double prevTime, double curTime)
 {
-	double aveDT = (1/curFPS);
-	aveDT = (aveDT*numFrames);
-	return (1/((aveDT+dt)/(numFrames+1)));
+	return (1/(curTime-prevTime));
 }
 
 int initLevel(vector<Object> &objects, int argc, char** args)
@@ -326,8 +361,9 @@ int main(int argc, char *argv[])
 
 	SDL_Event event;
 	Engine engine;
+
 	double dt = 0;
-	double curTime = clock();
+	double prevTime = (((double)clock())/CLOCKS_PER_SEC), curTime = (((double)clock())/CLOCKS_PER_SEC);
 	double fps;
 	bool left = false, right = false;
 	bool up = false;
@@ -382,11 +418,15 @@ int main(int argc, char *argv[])
 			}
 		}
 //LOGIC
-		dt = engine.getTime(curTime);
+		dt = engine.setTimes(prevTime, curTime);
 
-		fps = 1/dt;
+		fps = engine.getFPS(prevTime, curTime);
 
-//		fps = engine.getFPS(dt, fps, numFrames);
+		cout << "Alive? ";
+		if (player.alive)
+			cout << "Yes" << endl;
+		else
+			cout << "No" << endl;
 
 		if (up && player.can_jump)
 		{
@@ -395,8 +435,8 @@ int main(int argc, char *argv[])
 
 		player.gravity(dt);
 
-		player.move_x(objects, dt, left, right);
-		player.move_y(objects, dt);
+		objects = player.move_x(objects, dt, left, right);
+		objects = player.move_y(objects, dt);
 
 
 //RENDERING
